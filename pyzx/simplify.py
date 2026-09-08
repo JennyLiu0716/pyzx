@@ -376,9 +376,8 @@ def drop_orphan_reset_discards(g: BaseGraph[VT,ET]) -> int:
 
     # Step 3: collect every vertex/var to drop in one pass, then mutate
     # the graph in a single ``remove_vertices`` batch. This keeps the
-    # accumulated vertex IDs valid for the duration of the pass:
-    # backends that reindex on deletion (e.g. igraph) only renumber
-    # once the batch is committed.
+    # accumulated vertex IDs valid for the duration of the pass: backends
+    # that reindex on deletion only renumber once the batch is committed.
     remove_set: Set[VT] = set()
     removed = 0
     for chain, var_name in candidates:

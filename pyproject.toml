@@ -92,10 +92,7 @@ disallow_untyped_defs = true
 [[tool.mypy.overrides]]
 module = [
     "numpy.*",
-    "igraph.*",
-    "graph_tool.*",
     "networkx.*",
-    "pyquil.*",
     "matplotlib.*",
     "pandas.*",
     "ipywidgets.*",

@@ -244,6 +244,21 @@ class TestTimeSlice(unittest.TestCase):
         t_sl = sl.to_tensor(preserve_scalar=False)
         self.assertTrue(np.allclose(t_g, t_sl))
 
+    @unittest.skipUnless(np is not None, "numpy required")
+    def test_following_hadamard_stays_outside_window(self):
+        # T at tick 0, H at tick 1: the slice of tick 0 must be T alone, not T;H.
+        import pyzx as zx
+        c = Circuit(1)
+        c.add_gate(ZPhase(0, Fraction(1, 4)))
+        c.add_gate(HAD(0))
+        g = c.to_graph(gate_durations={})
+        t_only = Circuit(1)
+        t_only.add_gate(ZPhase(0, Fraction(1, 4)))
+        self.assertTrue(zx.compare_tensors(time_slice(g, 0), t_only.to_graph(), preserve_scalar=False))
+        h_only = Circuit(1)
+        h_only.add_gate(HAD(0))
+        self.assertTrue(zx.compare_tensors(time_slice(g, 1), h_only.to_graph(), preserve_scalar=False))
+
 
 class TestDrawSmoke(unittest.TestCase):
     def test_draw_matplotlib_show_time(self):

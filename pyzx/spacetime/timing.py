@@ -39,7 +39,7 @@ from __future__ import annotations
 from typing import Optional
 
 from ..graph.base import BaseGraph, VT, ET
-from ..utils import VertexType
+from ..utils import EdgeType, VertexType
 
 __all__ = [
     'TIMESTEP_KEY', 'DELAY_KEY',
@@ -173,10 +173,13 @@ def time_slice(g: BaseGraph[VT, ET], start: int,
     Every edge from a kept spider to a dropped one is reconnected to a fresh
     ``BOUNDARY`` vertex, so the result is a valid ZX-diagram (with inputs and
     outputs set) that can be reasoned about on its own -- for instance compared
-    against a phase gadget.  The new boundary is registered as an input when the
-    dropped neighbour lies before the window and as an output otherwise.  Inputs
-    and outputs are ordered by qubit (then row), so the diagram has the same
-    boundary order a circuit on those qubits would.
+    against a phase gadget. An edge is created by the gate of its later endpoint, 
+    so a Hadamard edge is carried into the slice only when the kept spider is the 
+    later one; the Hadamard of a gate that follows the window stays outside it. 
+    The new boundary is registered as an input when the dropped neighbour lies 
+    before the window and as an output otherwise.  Inputs and outputs are ordered 
+    by qubit (then row), so the diagram has the same boundary order a circuit on 
+    those qubits would.
 
     The returned graph has the same backend as ``g``.  Vertex data is copied;
     the scalar is not.
@@ -216,12 +219,13 @@ def time_slice(g: BaseGraph[VT, ET], start: int,
         elif s_in or t_in:
             inside, outside = (s, t) if s_in else (t, s)
             b = h.add_vertex(VertexType.BOUNDARY, g.qubit(outside), g.row(outside))
-            h.add_edge((vmap[inside], b), et)
             ot = get_timestep(g, outside)
-            if ot is not None and ot < start:
-                inputs.append(b)
-            else:
-                outputs.append(b)
+            before = ot is not None and ot < start
+            # An edge is created by the gate of its later endpoint, so it
+            # belongs to the window only when the kept spider is the later one;
+            # a Hadamard created by a gate after the window stays outside it.
+            h.add_edge((vmap[inside], b), et if before else EdgeType.SIMPLE)
+            (inputs if before else outputs).append(b)
 
     by_qubit_row = lambda b: (h.qubit(b), h.row(b))
     h.set_inputs(tuple(sorted(inputs, key=by_qubit_row)))
